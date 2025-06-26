@@ -9,6 +9,7 @@ const bleedShort = document.getElementById('bleedShort');
 const mbottom = document.getElementById('marginBottom');
 const marginRight = document.getElementById('marginRight');
 const quantityInput = document.getElementById('quantity');
+const sheetsInput = document.getElementById('sheetsInput'); // New: 原紙枚数入力フィールド
 const overrideX = document.getElementById('overrideX');
 const overrideY = document.getElementById('overrideY');
 const calcBtn = document.getElementById('calcSheetsBtn');
@@ -96,6 +97,7 @@ function render() {
   frame.setAttribute('x',0); frame.setAttribute('y',0);
   frame.setAttribute('width',L.sw); frame.setAttribute('height',L.sh);
   frame.setAttribute('fill','none'); frame.setAttribute('stroke','#333');
+  frame.setAttribute('stroke-width','2'); // 紙枠の太さを指定
   canvas.appendChild(frame);
   const startX=L.sw - L.hr - L.cx * L.tw + L.bl;
   const startY=L.sh - L.mb - L.cy * L.th + L.bs;
@@ -103,29 +105,31 @@ function render() {
   const n=parseInt(designCount.value,10)||1;
 
   // 面付イメージに反映するためのデザイン順序配列を生成
-  // currentLayoutResults が存在し、multiDesignがチェックされている場合のみ使用
   let effectiveSeq = [];
   if (multiDesign.checked && currentLayoutResults && currentLayoutResults.layout) {
     const layoutCounts = currentLayoutResults.layout; // 例: [4, 8]
     const totalCells = L.cx * L.cy;
     let designIndex = 0;
-    let currentDesignCount = 0;
+    let currentDesignAccumulatedCount = 0;
+
+    const targetDesignCounts = [];
+    for (let i = 0; i < layoutCounts.length; i++) {
+        targetDesignCounts.push(layoutCounts[i]);
+    }
 
     for (let k = 0; k < totalCells; k++) {
-      if (designIndex < layoutCounts.length) {
+      if (designIndex < targetDesignCounts.length) {
         effectiveSeq.push(designIndex);
-        currentDesignCount++;
-        if (currentDesignCount >= layoutCounts[designIndex]) {
+        currentDesignAccumulatedCount++;
+        if (currentDesignAccumulatedCount >= targetDesignCounts[designIndex]) {
           designIndex++;
-          currentDesignCount = 0;
+          currentDesignAccumulatedCount = 0;
         }
       } else {
-        // デザイン数を超えた場合は最初のデザインに戻るか、デフォルトを設定
-        effectiveSeq.push(0); // またはエラー処理
+        effectiveSeq.push(0);
       }
     }
   } else {
-      // マルチデザインではない場合、または計算結果がない場合は全てデザイン1
       for (let k = 0; k < L.cx * L.cy; k++) {
           effectiveSeq.push(0);
       }
@@ -144,7 +148,8 @@ function render() {
       }
       const r=document.createElementNS(ns,'rect');
       r.setAttribute('x',startX+j*L.tw); r.setAttribute('y',startY+i*L.th);
-      r.setAttribute('width',L.w); r.setAttribute('height',L.h); r.setAttribute('fill',cols[idx % cols.length]); r.setAttribute('stroke','#666');
+      r.setAttribute('width',L.w); r.setAttribute('height',L.h); r.setAttribute('fill',cols[idx % cols.length]);
+      r.setAttribute('stroke','#666');
       canvas.appendChild(r);
       if(multiDesign.checked){
         const t=document.createElementNS(ns,'text');
@@ -160,12 +165,16 @@ function render() {
   const displayRightMargin = L.hr; // ハリ
   const displayBottomMargin = L.mb; // クワエ
 
-  marginsEl.textContent=`[余白] 左：${displayLeftMargin.toFixed(1)}mm　右：${displayRightMargin.toFixed(1)}mm　上：${displayTopMargin.toFixed(1)}mm　下：${displayBottomMargin.toFixed(1)}mm`;
+  marginsEl.textContent=`[余白]　左：${displayLeftMargin.toFixed(1)}mm　右：${displayRightMargin.toFixed(1)}mm　上：${displayTopMargin.toFixed(1)}mm　下：${displayBottomMargin.toFixed(1)}mm`;
 }
 
 function calculate() {
   const L=calcLayout();
-  const lines=[];
+  let tableRows = ''; // HTML文字列を構築するための変数
+
+  // Enable sheetsInput
+  sheetsInput.disabled = false;
+
   if(multiDesign.checked){
     const req=[];
     for(let i=1;i<=parseInt(designCount.value,10);i++) {
@@ -173,36 +182,81 @@ function calculate() {
     }
     const best=findOptimalLayout(req,L.total);
     currentLayoutResults = best; // 計算結果を保存
-    lines.push(`原紙寸法：${L.sw}×${L.sh}mm`,`製品サイズ：${L.w}×${L.h}mm`);
+
+    let sheets;
+    // If sheetsInput has a value, use it, otherwise calculate based on best.plates
+    if (sheetsInput.value !== '' && !isNaN(parseInt(sheetsInput.value, 10)) && parseInt(sheetsInput.value, 10) >= 0) {
+      sheets = parseInt(sheetsInput.value, 10);
+    } else {
+      sheets = best.plates;
+      sheetsInput.value = sheets; // Update sheetsInput with the calculated value
+    }
+
+    // 原紙寸法と製品サイズ
+    tableRows += `<tr><td>原紙寸法</td><td>${L.sw}×${L.sh}mm</td></tr>`;
+    tableRows += `<tr><td>製品サイズ</td><td>${L.w}×${L.h}mm</td></tr>`;
+
+    // 面付数
+    tableRows += `<tr><td>面付数</td><td>`;
     req.forEach((_,i)=>{
       const f=best.layout[i];
       const rows=f/L.cx;
-      const p=i===0?'面付数：':'&emsp;&emsp;'; // 頭を揃えるための調整
-      lines.push(`${p}デザイン${i+1}／${L.cx}×${rows}＝${f}面`);
+      // 小数点以下2桁表示
+      tableRows += `<div>デザイン${i+1}／${L.cx}×${rows.toFixed(2)}＝${f}面</div>`;
     });
-    lines.push(`必要原紙：${best.plates}枚`);
-    req.forEach((_,i)=>{
-      const o=best.over[i], a=best.actual[i];
-      const p=i===0?'予備：　':'&emsp;&emsp;'; // 頭を揃えるための調整
-      lines.push(`${p}デザイン${i+1}／${o}枚（総印刷枚数：${a}枚）`);
+    tableRows += `</td></tr>`;
+
+    // 必要原紙
+    tableRows += `<tr><td>必要原紙</td><td>${sheets}枚</td></tr>`;
+
+    // 予備 (各デザインの面付数 × 原紙枚数 − 各印刷数量)
+    tableRows += `<tr><td>予備</td><td>`;
+    req.forEach((qty,i)=>{
+      const f=best.layout[i]; // 面付数
+      const spare = (f * sheets) - qty;
+      const totalPrinted = f * sheets;
+      tableRows += `<div>デザイン${i+1}／${spare}枚（総印刷枚数：${totalPrinted}枚）</div>`;
     });
-    lines.push(`ドブ：${L.bl}・${L.bs}（長辺・短辺）／クワエ：${L.mb}／ハリ：${L.hr}（mm）`);
-  } else {
-    const qty=+quantityInput.value||0, sheets=Math.ceil(qty/L.total), res=sheets*L.total-qty;
+    tableRows += `</td></tr>`;
+
+    // ドブ・クワエ・ハリ
+    tableRows += `<tr><td>ドブ・余白</td><td>ドブ：${L.bl}・${L.bs}（長辺・短辺）<br>クワエ：${L.mb}／ハリ：${L.hr}（mm）</td></tr>`;
+
+  } else { // シングルデザインの場合
+    const qty=+quantityInput.value||0;
+    let sheets;
+    // If sheetsInput has a value, use it, otherwise calculate based on quantity
+    if (sheetsInput.value !== '' && !isNaN(parseInt(sheetsInput.value, 10)) && parseInt(sheetsInput.value, 10) >= 0) {
+      sheets = parseInt(sheetsInput.value, 10);
+    } else {
+      sheets = Math.ceil(qty/L.total);
+      sheetsInput.value = sheets; // Update sheetsInput with the calculated value
+    }
+
+    const res = (sheets * L.total) - qty; // 予備の計算
+
     currentLayoutResults = null; // シングルデザインの場合はクリア
-    lines.push(`原紙寸法：${L.sw}×${L.sh}mm`,`製品サイズ：${L.w}×${L.h}mm`,`面付数：${L.cx}×${L.cy}＝${L.total}面`,`必要原紙：${sheets}枚`,`予備：${res}枚（総印刷枚数：${sheets*L.total}枚）`,`ドブ：${L.bl}・${L.bs}（長辺・短辺）／クワエ：${L.mb}／ハリ：${L.hr}（mm）`);
+
+    tableRows += `<tr><td>原紙寸法</td><td>${L.sw}×${L.sh}mm</td></tr>`;
+    tableRows += `<tr><td>製品サイズ</td><td>${L.w}×${L.h}mm</td></tr>`;
+    tableRows += `<tr><td>面付数</td><td>${L.cx}×${L.cy}＝${L.total}面</td></tr>`;
+    tableRows += `<tr><td>必要原紙</td><td>${sheets}枚</td></tr>`;
+    tableRows += `<tr><td>予備</td><td>${res}枚（総印刷枚数：${sheets*L.total}枚）</td></tr>`;
+    tableRows += `<tr><td>ドブ・余白</td><td>ドブ：${L.bl}・${L.bs}（長辺・短辺）<br>クワエ：${L.mb}／ハリ：${L.hr}（mm）</td></tr>`;
   }
-  resultBody.innerHTML=`<tr><td colspan=\"2\">${lines.join('<br>')}</td></tr>`;
+  resultBody.innerHTML=tableRows;
 
   // 計算が終わったらSVGを再描画して結果を反映
   render();
 }
 
-[paperType,itemW,itemH,rotate,bleedLong,bleedShort,mbottom,marginRight].forEach(el=>el.addEventListener('input',()=>{ overrideX.value=''; overrideY.value=''; render(); }));
-overrideX.addEventListener('input',render); overrideY.addEventListener('input',render);
+[paperType,itemW,itemH,rotate,bleedLong,bleedShort,mbottom,marginRight,quantityInput].forEach(el=>el.addEventListener('input',()=>{ sheetsInput.value=''; overrideX.value=''; overrideY.value=''; render(); }));
+overrideX.addEventListener('input',render);
+overrideY.addEventListener('input',render);
 calcBtn.addEventListener('click',calculate);
-downloadSvgBtn.addEventListener('click',()=>{ const vb=canvas.viewBox.baseVal, cl=canvas.cloneNode(true); cl.setAttribute('xmlns',ns); cl.setAttribute('width',vb.width+'mm'); cl.setAttribute('height',vb.height+'mm'); const xml=new XMLSerializer().serializeToString(cl), blob=new Blob([xml],{type:'image/svg+xml'}), url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download='layout.svg'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); });
+sheetsInput.addEventListener('input', calculate); // New: Add event listener for sheetsInput
 
+downloadSvgBtn.addEventListener('click',()=>{ const vb=canvas.viewBox.baseVal, cl=canvas.cloneNode(true); cl.setAttribute('xmlns',ns); cl.setAttribute('width',vb.width+'mm'); cl.setAttribute('height',vb.height+'mm'); const xml=new XMLSerializer().serializeToString(cl), blob=new Blob([xml],{type:'image/svg+xml'}), url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download='layout.svg'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); });
 downloadPdfBtn.addEventListener('click',()=>{
   const { jsPDF }=window.jspdf;
   const pdf=new jsPDF({unit:'mm',format:'a4',orientation:'landscape'});
@@ -241,16 +295,13 @@ downloadPdfBtn.addEventListener('click',()=>{
     pdf.save('layout.pdf');
   });
 });
-
 multiDesign.addEventListener('change',() => {
     setupDesignInputs();
-    render(); // マルチデザインのチェックボックスが変更されたらSVGも更新
+    calculate(); // マルチデザインのチェックボックスが変更されたら計算も実行
 });
 designCount.addEventListener('input',setupDesignInputs);
 orderType.addEventListener('change',render);
-
 window.addEventListener('DOMContentLoaded',()=>{
     setupDesignInputs(); // 初期ロード時にもデザイン入力欄をセットアップ
-    render();
     calculate(); // 初期ロード時に計算結果も表示
 });
