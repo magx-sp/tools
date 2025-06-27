@@ -12,7 +12,6 @@ const quantityInput = document.getElementById('quantity');
 const sheetsInput = document.getElementById('sheetsInput');
 const overrideX = document.getElementById('overrideX');
 const overrideY = document.getElementById('overrideY');
-const calcBtn = document.getElementById('calcSheetsBtn');
 const multiDesign = document.getElementById('multiDesign');
 const designCount = document.getElementById('designCount');
 const designList = document.getElementById('designList');
@@ -391,7 +390,6 @@ function calculate() {
 
 overrideX.addEventListener('input', calculate);
 overrideY.addEventListener('input', calculate);
-calcBtn.addEventListener('click', calculate);
 sheetsInput.addEventListener('input', calculate);
 
 downloadSvgBtn.addEventListener('click', () => { 
