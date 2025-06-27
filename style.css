@@ -1,37 +1,15 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body { font-family: sans-serif; margin: 0; padding: 0; }
-
-.container {
-  display: flex;
-  height: 100vh;
-  flex-direction: row; /* デフォルトはPC向けに横並び */
-}
-
-.controls {
-  width: 320px; /* PC向け固定幅 */
-  padding: 1rem;
-  border-right: 1px solid #ddd;
-  overflow-y: auto;
-  flex-shrink: 0; /* PCレイアウトで縮まないように */
-}
-
-.controls label {
-  display: block;
-  margin-bottom: 0.75rem;
-  font-size: 0.9rem;
-}
+.container { display: flex; height: 100vh; }
+.controls { width: 320px; padding: 1rem; border-right: 1px solid #ddd; overflow-y: auto; }
+.controls label { display: block; margin-bottom: 0.75rem; font-size: 0.9rem; }
 .controls .pair { display: flex; gap: 0.5rem; }
 .controls .pair label { flex: 1; }
-.controls input[type="number"], .controls select {
-  width: 100%;
-  margin-top: 0.25rem;
-  padding: 8px; /* タップしやすくするためpaddingを増やす */
-  font-size: 1rem; /* フォントサイズを調整 */
-}
+.controls input[type="number"], .controls select { width: 100%; margin-top: 0.25rem; padding: 4px; }
 .controls input[disabled] { background: #f0f0f0; }
 .checkbox-label { display: flex; align-items: center; margin-bottom: 0.75rem; font-size: 0.9rem; }
-.checkbox-label input { margin-right: 0.5rem; transform: scale(1.2); /* チェックボックスを少し大きく */ }
+.checkbox-label input { margin-right: 0.5rem; }
 
 /* 追加: 複数デザイン項目を囲む枠線 */
 .multi-design-section {
@@ -57,104 +35,10 @@ body { font-family: sans-serif; margin: 0; padding: 0; }
   height: 100%;
   overflow: hidden;
 }
-#canvas {
-  width: 100%;
-  height: auto;
-  max-width: 100%; /* SVGが親要素からはみ出さないように */
-  flex-shrink: 0; /* 縮まないように */
-}
-.margin-labels {
-  font-size: 0.9rem;
-  text-align: center;
-  margin-top: 0.5rem;
-  word-break: keep-all; /* 余白表示が改行されないように */
-}
-#buttons {
-  margin-top: 0.5rem;
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap; /* ボタンが複数行になっても良いように */
-}
-#buttons button {
-  flex: 1;
-  min-width: 150px; /* ボタンの最小幅を設定 */
-  font-size: 1rem; /* ボタンのフォントサイズを調整 */
-  padding: 0.75em 1em; /* ボタンのパディングを調整 */
-  cursor: pointer;
-}
+#canvas { width: 100%; height: auto; }
+.margin-labels { font-size: 0.9rem; text-align: center; margin-top: 0.5rem; }
+#buttons { margin-top: 0.5rem; display: flex; gap: 0.5rem; }
+#buttons button { flex: 1; font-size: 0.9em; padding: 0.75em; width: 100%; }
 #resultTable { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.9rem; }
 #resultTable th, #resultTable td { border: 1px solid #999; padding: 3px 10px; text-align: left; }
 #resultTable th { background: #f0f0f0; text-align: center; }
-
-
-/* スマートフォン向けメディアクエリ */
-@media (max-width: 768px) { /* 768px以下の画面幅に適用 */
-  .container {
-    flex-direction: column; /* 縦積みに変更 */
-    height: auto; /* 高さを自動調整 */
-  }
-
-  .controls {
-    width: 100%; /* 幅を100%に */
-    border-right: none;
-    border-bottom: 1px solid #ddd; /* 下部にボーダーを追加 */
-    max-height: 50vh; /* コントロール部分の最大高さを設定し、スクロール可能に */
-  }
-
-  .layout {
-    height: auto; /* 高さを自動調整 */
-    padding-top: 0; /* 上部のパディングをなくすか減らす */
-  }
-
-  #pdfArea {
-    flex: none; /* SVGが高さに合わせて縮まないように */
-    height: auto;
-    overflow-y: hidden; /* SVG表示エリアのスクロールは通常不要 */
-  }
-
-  #canvas {
-    width: 100%;
-    height: auto;
-    /* max-width: 100%; */ /* 既に設定済みだが念のため */
-    /* SVGは描画の都合上、親要素に依存しないため、特定のサイズ指定は難しい */
-    /* 必要であれば、JavaScriptでSVGの高さを動的に調整することも検討 */
-  }
-
-  .margin-labels {
-    font-size: 0.8rem; /* スマートフォン向けに少し小さく */
-  }
-
-  #buttons {
-    flex-direction: column; /* ボタンを縦積みに */
-    gap: 0.75rem; /* ボタン間のスペースを調整 */
-  }
-
-  #buttons button {
-    width: 100%; /* ボタン幅を100%に */
-    padding: 1em; /* ボタンのパディングを増やす */
-  }
-
-  #resultTable {
-    font-size: 0.8rem; /* 結果テーブルのフォントサイズを調整 */
-  }
-}
-
-/* さらに小さい画面（例: iPhone SEなど）向け調整 */
-@media (max-width: 480px) {
-  .controls label {
-    font-size: 0.85rem;
-  }
-  .checkbox-label {
-    font-size: 0.85rem;
-  }
-  .controls input[type="number"], .controls select {
-    padding: 6px;
-    font-size: 0.9rem;
-  }
-  #resultTable {
-    font-size: 0.75rem;
-  }
-  #resultTable th, #resultTable td {
-    padding: 2px 5px;
-  }
-}
