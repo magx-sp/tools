@@ -144,7 +144,7 @@ function setupDesignInputs() {
     div.className = 'pair';
     // ▼▼▼ 表示崩れ対策としてラベルを2行にし、高さを揃える ▼▼▼
     div.innerHTML = `
-        <label>デザイン${i}<br>印刷数量
+        <label>|デザイン${i}<br>印刷数量
           <input type="number" id="dq${i}" value="0" min="0">
         </label>
         <label>面付数<br>&nbsp;
