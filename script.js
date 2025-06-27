@@ -13,10 +13,10 @@ const sheetsInput = document.getElementById('sheetsInput');
 const overrideX = document.getElementById('overrideX');
 const overrideY = document.getElementById('overrideY');
 const multiDesign = document.getElementById('multiDesign');
+const manualLayout = document.getElementById('manualLayout');
 const designCount = document.getElementById('designCount');
 const designList = document.getElementById('designList');
 const designInputs = document.getElementById('designInputs');
-const orderType = document.getElementById('orderType');
 const marginsEl = document.getElementById('margins');
 const resultBody = document.getElementById('resultBody');
 const downloadSvgBtn = document.getElementById('downloadSvgBtn');
@@ -29,6 +29,13 @@ let currentLayoutResults = null;
 function displayErrorMessage(message) {
     resultBody.innerHTML = `<tr><td colspan="2" style="color: red; font-weight: bold;">${message}</td></tr>`;
     sheetsInput.value = '0';
+    if (multiDesign.checked) {
+        const n = parseInt(designCount.value, 10) || 1;
+        for (let i = 1; i <= n; i++) {
+            const faceInput = document.getElementById(`df${i}`);
+            if(faceInput) faceInput.value = 0;
+        }
+    }
     currentLayoutResults = null;
     render();
 }
@@ -64,7 +71,7 @@ function findOptimalLayout(reqQuantities, totalFacesPerSheet) {
         return (facesPerSheet > 0) ? Math.ceil(reqQuantities[i] / facesPerSheet) : 0;
     });
 
-    const maxSheets = Math.max(...sheetsPerDesign);
+    const maxSheets = Math.max(...sheetsPerDesign.filter(isFinite));
 
     if (maxSheets === Infinity) {
         return;
@@ -110,9 +117,9 @@ function findOptimalLayout(reqQuantities, totalFacesPerSheet) {
     }
   }
 
-  if (reqQuantities.length > 0 && totalFacesPerSheet > 0) {
+  if (reqQuantities.length > 0 && totalFacesPerSheet > 0 && reqQuantities.length <= totalFacesPerSheet) {
     generateCombinations(0, totalFacesPerSheet, []);
-  } else {
+  } else if (reqQuantities.every(q => q === 0)) {
       return {
           layout: reqQuantities.map(() => 0),
           plates: 0,
@@ -130,17 +137,27 @@ function setupDesignInputs() {
   designInputs.style.display = multiDesign.checked ? 'block' : 'none';
   designList.innerHTML = '';
   const n = parseInt(designCount.value, 10) || 1;
+  const isManual = manualLayout.checked;
+
   for (let i = 1; i <= n; i++) {
     const div = document.createElement('div');
-    div.innerHTML = `<label>デザイン${i}／印刷数量<br><input type="number" id="dq${i}" value="0" min="0"></label>`;
+    div.className = 'pair';
+    // ▼▼▼ 表示崩れ対策としてラベルを2行にし、高さを揃える ▼▼▼
+    div.innerHTML = `
+        <label>デザイン${i}<br>印刷数量
+          <input type="number" id="dq${i}" value="0" min="0">
+        </label>
+        <label>面付数<br>&nbsp;
+          <input type="number" id="df${i}" min="0" ${!isManual ? 'disabled' : ''}>
+        </label>`;
+    // ▲▲▲ 修正ここまで ▲▲▲
     designList.appendChild(div);
-    // [FIX START] Event listener for design quantity inputs
-    // Add logic to clear sheetsInput to ensure a fresh calculation
+    
     document.getElementById(`dq${i}`).addEventListener('input', () => {
-        sheetsInput.value = '';
+        if (!isManual) sheetsInput.value = '';
         calculate();
     });
-    // [FIX END]
+    document.getElementById(`df${i}`).addEventListener('input', calculate);
   }
   quantityInput.disabled = multiDesign.checked;
   currentLayoutResults = null;
@@ -172,37 +189,29 @@ function calcLayout() {
   return { sw, sh, w, h, bl, bs, mb, hr, tw, th, cx, cy, total: cx * cy };
 }
 
-function generateDesignSequence(layoutCounts, totalCells, orderType) {
+// ▼▼▼ orderType引数を削除 ▼▼▼
+function generateDesignSequence(layoutCounts, totalCells) {
   const sequence = [];
   
   if (!layoutCounts || layoutCounts.length === 0) {
-    // シングルデザインの場合
-    for (let i = 0; i < totalCells; i++) {
-      sequence.push(0);
-    }
+    for (let i = 0; i < totalCells; i++) sequence.push(0);
     return sequence;
   }
 
-  // 各デザインの割り当て面数を配列で保持
   const designAssignments = [];
   for (let designIndex = 0; designIndex < layoutCounts.length; designIndex++) {
     for (let count = 0; count < layoutCounts[designIndex]; count++) {
       designAssignments.push(designIndex);
     }
   }
-
-  // 足りない分は最初のデザインで埋める
-  while (designAssignments.length < totalCells) {
-    designAssignments.push(0);
-  }
-
-  // 多すぎる場合は切り詰める
-  if (designAssignments.length > totalCells) {
-    designAssignments.length = totalCells;
-  }
+  
+  while (designAssignments.length < totalCells) designAssignments.push(-1); // 余白は-1
+  if (designAssignments.length > totalCells) designAssignments.length = totalCells;
 
   return designAssignments;
 }
+// ▲▲▲ 修正ここまで ▲▲▲
+
 
 function render() {
   const L = calcLayout();
@@ -223,29 +232,45 @@ function render() {
   const startY = L.sh - L.mb - L.cy * L.th + L.bs;
   const cols = ['#add8e6', '#ffb6c1', '#90ee90', '#ffa500', '#dda0dd', '#87ceeb', '#98fb98', '#f08080', '#e0ffff', '#f5deb3'];
   
-  // デザイン配列を生成
   let effectiveSeq = [];
   if (multiDesign.checked && currentLayoutResults && currentLayoutResults.layout) {
-    effectiveSeq = generateDesignSequence(currentLayoutResults.layout, L.cx * L.cy, orderType.value);
+    // ▼▼▼ orderType.valueを削除 ▼▼▼
+    effectiveSeq = generateDesignSequence(currentLayoutResults.layout, L.cx * L.cy);
   } else {
-    effectiveSeq = generateDesignSequence(null, L.cx * L.cy, orderType.value);
+    effectiveSeq = generateDesignSequence(null, L.cx * L.cy);
   }
 
-  // 面付を描画
+  // ▼▼▼ 描画ロジックを修正 ▼▼▼
   for (let i = 0; i < L.cy; i++) {
     for (let j = 0; j < L.cx; j++) {
       const cellIndex = i * L.cx + j;
-      const designIndex = effectiveSeq[cellIndex] || 0;
+      const designIndex = effectiveSeq[cellIndex];
+      
+      // ▼▼▼ 面付数が最大に満たない場合、余白を点線で描画 ▼▼▼
+      if (designIndex === -1) {
+          const r = document.createElementNS(ns, 'rect');
+          r.setAttribute('x', startX + j * L.tw);
+          r.setAttribute('y', startY + i * L.th);
+          r.setAttribute('width', L.w);
+          r.setAttribute('height', L.h);
+          r.setAttribute('fill', 'none');
+          r.setAttribute('stroke', '#ccc');
+          r.setAttribute('stroke-width', '1');
+          r.setAttribute('stroke-dasharray', '4 2');
+          canvas.appendChild(r);
+          continue;
+      }
       
       const r = document.createElementNS(ns, 'rect');
       r.setAttribute('x', startX + j * L.tw);
       r.setAttribute('y', startY + i * L.th);
       r.setAttribute('width', L.w);
       r.setAttribute('height', L.h);
-      r.setAttribute('fill', cols[designIndex % cols.length]);
+      r.setAttribute('fill', multiDesign.checked ? cols[designIndex % cols.length] : '#add8e6');
       r.setAttribute('stroke', '#666');
       canvas.appendChild(r);
       
+      // ▼▼▼ 複数デザインの時だけ番号を描画 ▼▼▼
       if (multiDesign.checked) {
         const t = document.createElementNS(ns, 'text');
         t.setAttribute('x', startX + j * L.tw + L.w / 2);
@@ -253,11 +278,12 @@ function render() {
         t.setAttribute('text-anchor', 'middle');
         t.setAttribute('dominant-baseline', 'middle');
         t.setAttribute('font-size', Math.min(L.w, L.h) / 4);
-        t.textContent = multiDesign.checked ? (effectiveSeq[cellIndex] !== undefined ? effectiveSeq[cellIndex] + 1 : '1') : '1';
+        t.textContent = designIndex + 1;
         canvas.appendChild(t);
       }
     }
   }
+  // ▲▲▲ 描画ロジック修正ここまで ▲▲▲
   
   const displayLeftMargin = startX;
   const displayTopMargin = startY;
@@ -266,6 +292,7 @@ function render() {
 
   marginsEl.textContent = `[余白]　左：${displayLeftMargin.toFixed(1)}mm　右：${displayRightMargin.toFixed(1)}mm　上：${displayTopMargin.toFixed(1)}mm　下：${displayBottomMargin.toFixed(1)}mm`;
 }
+
 
 function calculate() {
   const L = calcLayout();
@@ -276,76 +303,131 @@ function calculate() {
   sheetsInput.disabled = false;
 
   if (multiDesign.checked) {
+    const isManual = manualLayout.checked;
     const req = [];
     const n = parseInt(designCount.value, 10) || 1;
     for (let i = 1; i <= n; i++) {
       const element = document.getElementById(`dq${i}`);
       req.push(element ? (+element.value || 0) : 0);
     }
+    
+    let result = null;
 
-    if (L.total < req.length && req.some(q => q > 0)) {
-      displayErrorMessage(`エラー: 面付数 (${L.total}面) がデザイン数 (${req.length}個) より少ないため、各デザインに1面ずつ割り当てる事ができません。`);
-      return;
-    }
+    if (isManual) {
+        // --- 手動モード ---
+        const manualLayoutCounts = [];
+        let layoutSum = 0;
+        for (let i = 1; i <= n; i++) {
+            const faceEl = document.getElementById(`df${i}`);
+            const faces = faceEl ? (+faceEl.value || 0) : 0;
+            manualLayoutCounts.push(faces);
+            layoutSum += faces;
+        }
 
-    const best = findOptimalLayout(req, L.total);
-    currentLayoutResults = best;
+        // ▼▼▼ エラー発生時、描画を更新せず処理を中断 ▼▼▼
+        if (layoutSum > L.total) {
+            resultBody.innerHTML = `<tr><td colspan="2" style="color: red; font-weight: bold;">エラー: 面付数の合計 (${layoutSum}面) が、用紙全体の面付数 (${L.total}面) を超えています。</td></tr>`;
+            currentLayoutResults = null; // 結果をリセット
+            return;
+        }
+        // ▲▲▲ 修正ここまで ▲▲▲
 
-    let sheets;
-    if (sheetsInput.value !== '' && !isNaN(parseInt(sheetsInput.value, 10)) && parseInt(sheetsInput.value, 10) >= 0) {
-      sheets = parseInt(sheetsInput.value, 10);
-      if (best) {
-        best.plates = sheets;
-        best.actualQuantities = best.layout.map(facesPerSheet => facesPerSheet * sheets);
-        best.overQuantities = best.actualQuantities.map((actual, i) => actual - req[i]);
-        best.overRates = best.overQuantities.map((over, i) =>
-          req[i] > 0 ? (over / req[i]) * 100 : 0
+        const sheetsPerDesign = req.map((qty, i) => 
+            (manualLayoutCounts[i] > 0) ? Math.ceil(qty / manualLayoutCounts[i]) : 0
         );
-        const validOverRates = best.overRates.filter((rate, i) => req[i] > 0);
-        const mean = validOverRates.length > 0 ? validOverRates.reduce((sum, rate) => sum + rate, 0) / validOverRates.length : 0;
-        best.variance = validOverRates.length > 0 ? validOverRates.reduce((sum, rate) => sum + Math.pow(rate - mean, 2), 0) / validOverRates.length : 0;
-      }
-    } else {
-      sheets = best ? best.plates : 0;
-      sheetsInput.value = sheets;
-    }
+        const sheets = Math.max(0, ...sheetsPerDesign.filter(s => isFinite(s)));
 
-    // 結果テーブルの構築
+        if (sheetsInput.value === '' || isNaN(parseInt(sheetsInput.value, 10)) || parseInt(sheetsInput.value, 10) < 0 || sheetsInput.value != sheets) {
+            sheetsInput.value = sheets;
+        }
+
+        const finalSheets = +sheetsInput.value || 0;
+        const actualQuantities = manualLayoutCounts.map(faces => faces * finalSheets);
+        const overQuantities = actualQuantities.map((actual, i) => actual - req[i]);
+        const overRates = overQuantities.map((over, i) => req[i] > 0 ? (over / req[i]) * 100 : 0);
+        const validOverRates = overRates.filter((rate, i) => req[i] > 0);
+        const mean = validOverRates.length > 0 ? validOverRates.reduce((sum, rate) => sum + rate, 0) / validOverRates.length : 0;
+        const variance = validOverRates.length > 0 ? validOverRates.reduce((sum, rate) => sum + Math.pow(rate - mean, 2), 0) / validOverRates.length : 0;
+
+        result = {
+            layout: manualLayoutCounts,
+            plates: finalSheets,
+            actualQuantities,
+            overQuantities,
+            overRates,
+            variance
+        };
+
+    } else {
+        // --- 自動モード ---
+        if (L.total < req.length && req.some(q => q > 0)) {
+            displayErrorMessage(`エラー: 面付数 (${L.total}面) がデザイン数 (${req.length}個) より少ないため、各デザインに1面ずつ割り当てる事ができません。`);
+            return;
+        }
+
+        const best = findOptimalLayout(req, L.total);
+        result = best;
+
+        if (best) {
+            if (sheetsInput.value === '' || isNaN(parseInt(sheetsInput.value, 10)) || parseInt(sheetsInput.value, 10) < 0) {
+                sheetsInput.value = best.plates;
+            }
+            
+            best.layout.forEach((faces, i) => {
+                const faceInput = document.getElementById(`df${i+1}`);
+                if (faceInput) faceInput.value = faces;
+            });
+
+            const finalSheets = +sheetsInput.value || 0;
+            if (finalSheets !== best.plates) {
+                result.plates = finalSheets;
+                result.actualQuantities = result.layout.map(faces => faces * finalSheets);
+                result.overQuantities = result.actualQuantities.map((actual, i) => actual - req[i]);
+                result.overRates = result.overQuantities.map((over, i) => req[i] > 0 ? (over / req[i]) * 100 : 0);
+                const validOverRates = result.overRates.filter((rate, i) => req[i] > 0);
+                const mean = validOverRates.length > 0 ? validOverRates.reduce((sum, rate) => sum + rate, 0) / validOverRates.length : 0;
+                result.variance = validOverRates.length > 0 ? validOverRates.reduce((sum, rate) => sum + Math.pow(rate - mean, 2), 0) / validOverRates.length : 0;
+            }
+        } else {
+            req.forEach((_, i) => {
+                const faceInput = document.getElementById(`df${i+1}`);
+                if (faceInput) faceInput.value = 0;
+            });
+        }
+    }
+    
+    currentLayoutResults = result;
+
     tableRows += `<tr><td>原紙寸法</td><td>${L.sw}×${L.sh}mm</td></tr>`;
     tableRows += `<tr><td>製品サイズ</td><td>${L.w}×${L.h}mm</td></tr>`;
 
-    tableRows += `<tr><td>面付数</td><td>`;
-    if (best && best.layout) {
-      req.forEach((_, i) => {
-        const f = best.layout[i];
-        tableRows += `<div>デザイン${i + 1}／${f}面</div>`;
-      });
+    if (result) {
+        tableRows += `<tr><td>面付数</td><td>`;
+        req.forEach((_, i) => {
+            const f = result.layout[i] || 0;
+            tableRows += `<div>デザイン${i + 1}／${f}面</div>`;
+        });
+        tableRows += `</td></tr>`;
+
+        tableRows += `<tr><td>印刷数量</td><td>`;
+        req.forEach((qty, i) => {
+            tableRows += `<div>デザイン${i + 1}／${qty.toLocaleString()}枚</div>`;
+        });
+        tableRows += `</td></tr>`;
+
+        tableRows += `<tr><td>必要原紙枚数</td><td>${result.plates.toLocaleString()}枚</td></tr>`;
+        tableRows += `<tr><td>予備</td><td>`;
+        req.forEach((_, i) => {
+            const spare = result.overQuantities[i];
+            const overRate = result.overRates[i];
+            tableRows += `<div>デザイン${i + 1}／${spare.toLocaleString()}枚（予備率：${overRate.toFixed(2)}%）</div>`;
+        });
+        tableRows += `<div>予備率分散：${result.variance.toFixed(4)}</div>`;
+        tableRows += `</td></tr>`;
     } else {
-      tableRows += `<div>計算できません</div>`;
+         tableRows += `<tr><td colspan="2">計算できません</td></tr>`;
     }
-    tableRows += `</td></tr>`;
-
-    tableRows += `<tr><td>印刷数量</td><td>`;
-    req.forEach((qty, i) => {
-      tableRows += `<div>デザイン${i + 1}／${qty}枚</div>`;
-    });
-    tableRows += `</td></tr>`;
-
-    tableRows += `<tr><td>必要原紙枚数</td><td>${sheets}枚</td></tr>`;
-
-    tableRows += `<tr><td>予備</td><td>`;
-    if (best && best.layout) {
-      req.forEach((qty, i) => {
-        const spare = best.overQuantities[i];
-        const overRate = best.overRates[i];
-        tableRows += `<div>デザイン${i + 1}／${spare}枚（予備率：${overRate.toFixed(2)}%）</div>`;
-      });
-      tableRows += `<div>予備率分散：${best.variance.toFixed(4)}</div>`;
-    } else {
-      tableRows += `<div>計算できません</div>`;
-    }
-    tableRows += `</td></tr>`;
-
+    
     tableRows += `<tr><td>ドブ・余白</td><td>ドブ：${L.bl}・${L.bs}（長辺・短辺）<br>クワエ：${L.mb}／ハリ：${L.hr}（mm）</td></tr>`;
 
   } else {
@@ -368,9 +450,9 @@ function calculate() {
     tableRows += `<tr><td>原紙寸法</td><td>${L.sw}×${L.sh}mm</td></tr>`;
     tableRows += `<tr><td>製品サイズ</td><td>${L.w}×${L.h}mm</td></tr>`;
     tableRows += `<tr><td>面付数</td><td>${L.cx}×${L.cy}＝${L.total}面</td></tr>`;
-    tableRows += `<tr><td>印刷数量</td><td>${qty}枚</td></tr>`;
-    tableRows += `<tr><td>必要原紙枚数</td><td>${sheets}枚</td></tr>`;
-    tableRows += `<tr><td>予備</td><td>${res}枚（予備率：${overRate.toFixed(2)}%）</td></tr>`;
+    tableRows += `<tr><td>印刷数量</td><td>${qty.toLocaleString()}枚</td></tr>`;
+    tableRows += `<tr><td>必要原紙枚数</td><td>${sheets.toLocaleString()}枚</td></tr>`;
+    tableRows += `<tr><td>予備</td><td>${res.toLocaleString()}枚（予備率：${overRate.toFixed(2)}%）</td></tr>`;
     tableRows += `<tr><td>ドブ・余白</td><td>ドブ：${L.bl}・${L.bs}（長辺・短辺）<br>クワエ：${L.mb}／ハリ：${L.hr}（mm）</td></tr>`;
   }
   
@@ -453,15 +535,28 @@ multiDesign.addEventListener('change', () => {
   setupDesignInputs();
 });
 
-// [FIX START] Event listener for design count input
-// Add logic to clear sheetsInput to ensure a fresh calculation
+manualLayout.addEventListener('change', () => {
+  const isManual = manualLayout.checked;
+  const n = parseInt(designCount.value, 10) || 1;
+  for (let i = 1; i <= n; i++) {
+      const faceInput = document.getElementById(`df${i}`);
+      if (faceInput) {
+        faceInput.disabled = !isManual;
+      }
+  }
+  if (!isManual) {
+    sheetsInput.value = ''; 
+  }
+  calculate();
+});
+
 designCount.addEventListener('input', () => {
-    sheetsInput.value = '';
+    if (!manualLayout.checked) sheetsInput.value = '';
     setupDesignInputs();
 });
-// [FIX END]
 
-orderType.addEventListener('change', render);
+// ▼▼▼ orderTypeのイベントリスナーを削除 ▼▼▼
+// ▲▲▲ 削除 ▲▲▲
 
 window.addEventListener('DOMContentLoaded', () => {
   setupDesignInputs();
