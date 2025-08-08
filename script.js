@@ -41,96 +41,67 @@ function displayErrorMessage(message) {
 }
 
 function findOptimalLayout(reqQuantities, totalFacesPerSheet) {
-  let best = null;
-  let minVariance = Infinity;
+  // すべて0なら即返す
+  if (!reqQuantities || reqQuantities.length === 0 || reqQuantities.every(q => q === 0)) {
+    return {
+      layout: reqQuantities.map(() => 0),
+      plates: 0,
+      actualQuantities: reqQuantities.map(() => 0),
+      overQuantities: reqQuantities.map(() => 0),
+      overRates: reqQuantities.map(() => 0),
+      variance: 0
+    };
+  }
 
-  function generateCombinations(designIndex, remainingFaces, currentLayout) {
-    if (designIndex === reqQuantities.length - 1) {
-      if (remainingFaces >= 1) {
-        evaluateLayout(currentLayout.concat(remainingFaces));
-      }
-      return;
-    }
+  const n = reqQuantities.length;
+  const active = reqQuantities.map(q => q > 0);
+  const activeCount = active.filter(Boolean).length;
 
-    for (let facesForCurrentDesign = 1;
-         facesForCurrentDesign <= remainingFaces - (reqQuantities.length - designIndex - 1);
-         facesForCurrentDesign++) {
-      generateCombinations(
-        designIndex + 1,
-        remainingFaces - facesForCurrentDesign,
-        currentLayout.concat(facesForCurrentDesign)
-      );
+  if (totalFacesPerSheet <= 0) return null;
+  if (activeCount > totalFacesPerSheet) return null; // 1面ずつすら置けない
+
+  // 二分探索で原紙枚数 p を最小化
+  const maxQ = Math.max(...reqQuantities);
+  let lo = 1, hi = Math.max(1, maxQ), bestP = null, bestLayout = null;
+
+  const feasible = (p) => {
+    // 各デザインに必要な面数 f_i = ceil(q_i / p)
+    const faces = reqQuantities.map(q => (q > 0 ? Math.ceil(q / p) : 0));
+    const sumFaces = faces.reduce((a, b) => a + b, 0);
+    return { ok: sumFaces <= totalFacesPerSheet, faces };
+  };
+
+  while (lo <= hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    const { ok, faces } = feasible(mid);
+    if (ok) {
+      bestP = mid;
+      bestLayout = faces;
+      hi = mid - 1;          // さらに小さい枚数を探す
+    } else {
+      lo = mid + 1;          // もっと枚数が必要
     }
   }
 
-  function evaluateLayout(layout) {
-    const sheetsPerDesign = layout.map((facesPerSheet, i) => {
-        if (reqQuantities[i] > 0 && facesPerSheet === 0) {
-            return Infinity;
-        }
-        return (facesPerSheet > 0) ? Math.ceil(reqQuantities[i] / facesPerSheet) : 0;
-    });
+  if (bestP == null) return null;
 
-    const maxSheets = Math.max(...sheetsPerDesign.filter(isFinite));
+  // 余ったセルは未使用（-1 埋めで点線表示）にしてムダ刷りを増やさない
+  const plates = bestP;
+  const actualQuantities = bestLayout.map(f => f * plates);
+  const overQuantities = actualQuantities.map((act, i) => act - reqQuantities[i]);
+  const overRates = overQuantities.map((ov, i) => reqQuantities[i] > 0 ? (ov / reqQuantities[i]) * 100 : 0);
+  const validOver = overRates.filter((_, i) => reqQuantities[i] > 0);
+  const mean = validOver.length ? validOver.reduce((a, b) => a + b, 0) / validOver.length : 0;
+  const variance = validOver.length ? validOver.reduce((s, r) => s + Math.pow(r - mean, 2), 0) / validOver.length : 0;
 
-    if (maxSheets === Infinity) {
-        return;
-    }
-
-    if (maxSheets === 0 && reqQuantities.some(q => q > 0)) {
-        return;
-    }
-
-    if (reqQuantities.every(q => q === 0)) {
-        best = {
-            layout: layout,
-            plates: 0,
-            actualQuantities: reqQuantities.map(() => 0),
-            overQuantities: reqQuantities.map(() => 0),
-            overRates: reqQuantities.map(() => 0),
-            variance: 0
-        };
-        minVariance = 0;
-        return;
-    }
-
-    const actualQuantities = layout.map(facesPerSheet => facesPerSheet * maxSheets);
-    const overQuantities = actualQuantities.map((actual, i) => actual - reqQuantities[i]);
-    const overRates = overQuantities.map((over, i) =>
-        reqQuantities[i] > 0 ? (over / reqQuantities[i]) * 100 : 0
-    );
-
-    const validOverRates = overRates.filter((rate, i) => reqQuantities[i] > 0);
-    const mean = validOverRates.length > 0 ? validOverRates.reduce((sum, rate) => sum + rate, 0) / validOverRates.length : 0;
-    const variance = validOverRates.length > 0 ? validOverRates.reduce((sum, rate) => sum + Math.pow(rate - mean, 2), 0) / validOverRates.length : 0;
-
-    if (variance < minVariance) {
-      minVariance = variance;
-      best = {
-        layout: layout,
-        plates: maxSheets,
-        actualQuantities: actualQuantities,
-        overQuantities: overQuantities,
-        overRates: overRates,
-        variance: variance
-      };
-    }
-  }
-
-  if (reqQuantities.length > 0 && totalFacesPerSheet > 0 && reqQuantities.length <= totalFacesPerSheet) {
-    generateCombinations(0, totalFacesPerSheet, []);
-  } else if (reqQuantities.every(q => q === 0)) {
-      return {
-          layout: reqQuantities.map(() => 0),
-          plates: 0,
-          actualQuantities: reqQuantities.map(() => 0),
-          overQuantities: reqQuantities.map(() => 0),
-          overRates: reqQuantities.map(() => 0),
-          variance: 0
-      };
-  }
-
-  return best;
+  return {
+    layout: bestLayout,
+    plates,
+    actualQuantities,
+    overQuantities,
+    overRates,
+    variance
+  };
 }
 
 function setupDesignInputs() {
