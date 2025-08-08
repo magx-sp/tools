@@ -3,12 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>面付シュミレーター v2.0.0</title>
+  <title>面付シュミレーター</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
+ <div id="newsBar" class="news-bar" role="status" aria-live="polite">
+  <!-- JSで中身を自動生成します。JSが無効な場合のフォールバック -->
+  <span>2025/8/8　計算ロジックを変更しました。（予備率分散が最小になることを優先→原反枚数を最小にすることを優先）</span>
+  <button type="button" class="news-close" aria-label="このお知らせを閉じる"
+        onclick="this.parentElement.style.display='none'">×</button>
+</div>
+
   <div class="container">
     <div class="controls">
       <label>原紙寸法

@@ -42,3 +42,34 @@ body { font-family: sans-serif; margin: 0; padding: 0; }
 #resultTable { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.9rem; }
 #resultTable th, #resultTable td { border: 1px solid #999; padding: 3px 10px; text-align: left; }
 #resultTable th { background: #f0f0f0; text-align: center; }
+
+.news-bar {
+  position: sticky; /* ページ最上部に固定（ヘッダー無いのでstickyで十分） */
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #fffbe6;
+  border-bottom: 1px solid #f0e6b2;
+  color: #5c4a00;
+  font-size: 0.9rem;
+}
+
+.news-bar {
+  position: sticky;
+  top: 0;
+  z-index: 9999;      /* かぶり対策で大きめに */
+  pointer-events: auto;
+}
+
+.news-close {
+  margin-left: auto;
+  border: 1px solid #d5c98a;
+  background: #fff;
+  cursor: pointer;
+  padding: 0 0.5rem;
+  line-height: 1.2;
+}
+.news-close:hover { background: #f7f0c2; }

@@ -22,6 +22,14 @@ const resultBody = document.getElementById('resultBody');
 const downloadSvgBtn = document.getElementById('downloadSvgBtn');
 const downloadPdfBtn = document.getElementById('downloadPdfBtn');
 
+// ニュースバーの閉じる（イベント委任で確実に反応）
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.news-close');
+  if (!btn) return;
+  const bar = document.getElementById('newsBar');
+  if (bar) bar.style.display = 'none';
+});
+
 // 計算結果を保持するためのグローバル変数
 let currentLayoutResults = null;
 
@@ -528,6 +536,39 @@ designCount.addEventListener('input', () => {
 
 // ▼▼▼ orderTypeのイベントリスナーを削除 ▼▼▼
 // ▲▲▲ 削除 ▲▲▲
+
+// --- ニュース表示ロジック ---
+function setNews(items) {
+  const bar = document.getElementById('newsBar');
+  if (!bar) return;
+
+  // items: [{ date: 'YYYY/MM/DD', text: 'コメント', href?: 'リンク' }]
+  if (!Array.isArray(items) || items.length === 0) {
+    bar.style.display = 'none';
+    return;
+  }
+
+  // フォールバック（noscript相当）を消して作り直し
+  bar.innerHTML = '';
+
+  // 中身生成（複数件あれば「・」区切りで並べます）
+  const span = document.createElement('span');
+  span.innerHTML = items.map(it => {
+    const label = `${it.date}　${it.text}`;
+    return it.href ? `<a href="${it.href}" target="_blank" rel="noopener noreferrer">${label}</a>` : label;
+  }).join('　・　');
+  bar.appendChild(span);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'news-close';
+  closeBtn.setAttribute('aria-label', 'このお知らせを閉じる');
+  closeBtn.textContent = '×';
+  closeBtn.addEventListener('click', () => { bar.style.display = 'none'; });
+  bar.appendChild(closeBtn);
+}
+// --- /ニュース表示ロジック ---
+
 
 window.addEventListener('DOMContentLoaded', () => {
   setupDesignInputs();
