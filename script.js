@@ -21,6 +21,7 @@ const marginsEl = document.getElementById('margins');
 const resultBody = document.getElementById('resultBody');
 const downloadSvgBtn = document.getElementById('downloadSvgBtn');
 const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+const allowSmallBleed = document.getElementById('allowSmallBleed');
 
 // ニュースバーの閉じる（イベント委任で確実に反応）
 document.addEventListener('click', (e) => {
@@ -147,10 +148,38 @@ function calcLayout() {
   const [sw, sh] = paperType.value.split(',').map(Number);
   let w = +itemW.value, h = +itemH.value;
   if (rotate.checked) [w, h] = [h, w];
-  const bl = +bleedLong.value, bs = +bleedShort.value, mb = +mbottom.value, hr = +marginRight.value;
-  const tw = w + bl, th = h + bs;
-  const autoCx = Math.max(1, Math.floor((sw - hr) / tw));
-  const autoCy = Math.max(1, Math.floor((sh - mb) / th));
+  
+  let bl = +bleedLong.value, bs = +bleedShort.value;
+  const mb = +mbottom.value, hr = +marginRight.value;
+  
+  // 標準計算
+  let tw = w + bl, th = h + bs;
+  let autoCx = Math.max(1, Math.floor((sw - hr) / tw));
+  let autoCy = Math.max(1, Math.floor((sh - mb) / th));
+
+  // 6mm未満許可なら再計算試行
+  if (allowSmallBleed.checked) {
+    // 横方向で列が増える可能性を試す
+    if (Math.floor((sw - hr) / (w + 5)) > autoCx) {
+      bl = 5;
+      tw = w + bl;
+      autoCx = Math.floor((sw - hr) / tw);
+    } else if (Math.floor((sw - hr) / (w + 4)) > autoCx) {
+      bl = 4;
+      tw = w + bl;
+      autoCx = Math.floor((sw - hr) / tw);
+    }
+    // 縦方向で行が増える可能性を試す
+    if (Math.floor((sh - mb) / (h + 5)) > autoCy) {
+      bs = 5;
+      th = h + bs;
+      autoCy = Math.floor((sh - mb) / th);
+    } else if (Math.floor((sh - mb) / (h + 4)) > autoCy) {
+      bs = 4;
+      th = h + bs;
+      autoCy = Math.floor((sh - mb) / th);
+    }
+  }
 
   const currentOverrideX = overrideX.value ? +overrideX.value : null;
   const currentOverrideY = overrideY.value ? +overrideY.value : null;
@@ -158,12 +187,8 @@ function calcLayout() {
   const cx = currentOverrideX !== null ? currentOverrideX : autoCx;
   const cy = currentOverrideY !== null ? currentOverrideY : autoCy;
 
-  if (overrideX.value === '' || isNaN(currentOverrideX)) {
-    overrideX.value = autoCx;
-  }
-  if (overrideY.value === '' || isNaN(currentOverrideY)) {
-    overrideY.value = autoCy;
-  }
+  if (overrideX.value === '' || isNaN(currentOverrideX)) overrideX.value = autoCx;
+  if (overrideY.value === '' || isNaN(currentOverrideY)) overrideY.value = autoCy;
 
   return { sw, sh, w, h, bl, bs, mb, hr, tw, th, cx, cy, total: cx * cy };
 }
@@ -440,14 +465,13 @@ function calculate() {
 }
 
 // イベントリスナーの設定
-[paperType, itemW, itemH, rotate, bleedLong, bleedShort, mbottom, marginRight, quantityInput].forEach(el => 
-  el.addEventListener('input', () => { 
-    sheetsInput.value = ''; 
-    overrideX.value = ''; 
-    overrideY.value = ''; 
-    calculate(); 
-  })
-);
+[paperType, itemW, itemH, rotate, bleedLong, bleedShort, mbottom, marginRight, quantityInput, allowSmallBleed]
+  .forEach(el => el.addEventListener('input', () => {
+    sheetsInput.value = '';
+    overrideX.value = '';
+    overrideY.value = '';
+    calculate();
+  }));
 
 overrideX.addEventListener('input', calculate);
 overrideY.addEventListener('input', calculate);

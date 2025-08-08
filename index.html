@@ -11,7 +11,7 @@
 <body>
  <div id="newsBar" class="news-bar" role="status" aria-live="polite">
   <!-- JSで中身を自動生成します。JSが無効な場合のフォールバック -->
-  <span>2025/8/8　計算ロジックを変更しました。（予備率分散が最小になることを優先→原反枚数を最小にすることを優先）</span>
+  <span>2025/8/8<br>・計算ロジックを変更しました。（予備率分散が最小になることを優先→原反枚数を最小にすることを優先）<br>・6mm未満のドブを許可するかどうかのチェックボックスを追加しました。（4mm/5mmを許可）</span>
   <button type="button" class="news-close" aria-label="このお知らせを閉じる"
         onclick="this.parentElement.style.display='none'">×</button>
 </div>
@@ -39,6 +39,11 @@
       <label>ドブ 短辺側 (mm)
         <input type="number" id="bleedShort" value="6" min="0">
       </label>
+
+      <label class="checkbox-label">
+        <input type="checkbox" id="allowSmallBleed"> 6mm未満のドブを許可
+      </label>
+
       <label>クワエ 下余白 (mm)
         <input type="number" id="marginBottom" value="15" min="0">
       </label>
