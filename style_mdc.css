@@ -1,0 +1,30 @@
+:root{ --space:10px; --space-sm:6px; --radius:10px; --border:#ddd; --bg:#fafafa; }
+*{box-sizing:border-box}
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", "Helvetica Neue", Arial;
+  line-height: 1.5; margin: 16px; color:#222; }
+h1 { font-size: 18px; margin: 0 0 8px; }
+.toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom: var(--space); }
+.toolbar .spacer{flex:1}
+.btn { padding: 6px 10px; border: 1px solid #ccc; background: #f7f7f7; cursor: pointer; border-radius: 8px; font-size:13px; }
+.btn:active{ transform: translateY(1px); }
+.btn.primary{ background:#1971ff; color:#fff; border-color:#1971ff;}
+.muted { color: #666; font-size: 12px; }
+input[type="number"], input[type="text"] { padding: 6px; width: 120px; font-size:13px; }
+label { display:inline-flex; align-items:center; gap:6px; }
+.layout { display:grid; grid-template-columns: 1fr 1.2fr; gap: 12px; }
+@media (max-width: 900px){ .layout{ grid-template-columns: 1fr; } }
+.panel { border:1px solid var(--border); border-radius: var(--radius); background:#fff; padding: 10px; min-height: 200px; }
+.panel header { font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:8px;}
+.grid { display: grid; grid-template-columns: auto 120px 100px; gap: 6px; align-items: center; }
+.grid > div { padding: 2px 0; }
+.grid header { position: sticky; top:0; background:#fff; z-index:1; border-bottom:1px solid var(--border); padding:4px 0; }
+#designWrap { max-height: 420px; overflow:auto; border:1px dashed var(--border); border-radius:8px; padding:6px; }
+.row-compact { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;}
+.dropzone { border: 2px dashed #bbb; border-radius: 8px; padding: 10px; text-align: center; color:#666; font-size:13px; }
+.dropzone.dragover { border-color: #888; background: #fafafa; }
+table { border-collapse: collapse; width: 100%; font-size:13px; }
+th, td { border: 1px solid #ddd; padding: 6px; text-align: right; }
+th:nth-child(1), td:nth-child(1) { text-align: left; }
+tfoot td { font-weight: bold; }
+.badge { display:inline-block; padding:1px 6px; border-radius:999px; background:#eef; border:1px solid #99c; font-size:12px;}
+.right { text-align:right; }
