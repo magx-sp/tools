@@ -300,7 +300,7 @@ const exportXlsxBtn = document.getElementById('exportXlsx');
 function buildDesignInputs() {
   const n = Math.max(1, parseInt(designCountEl.value || '1', 10));
   designCountBadge.textContent = n;
-  designGrid.innerHTML = '<header>デザイン名</header><header>希望数量</header><header></header>';
+  designGrid.innerHTML = '<header>デザイン名</header><header>必要数量</header><header></header>';
   for (let i = 0; i < n; i++) {
     const name = document.createElement('input');
     name.type = 'text'; name.placeholder = 'デザイン' + (i+1); name.value = 'デザイン' + (i+1); name.dataset.role = 'name';
@@ -355,11 +355,11 @@ function runCalc() {
   }
 
   if (totalFaces % 2 !== 0) { alert('半裁最適化は面付数が偶数の時のみ利用できます。'); return; }
-  const opt = optimizeMagnetSplit(req, totalFaces);
+  const opt = optimizeMagnetSplit(req, totalFaces);必要数量
   if (opt.error) { alert(opt.error); return; }
 
-  // 追加要望: 「片側面付」と「総印刷数（片側）」の間に「希望数量」を表示
-  resultHeader.innerHTML = '<th>デザイン名</th><th>側</th><th>片側面付</th><th>希望数量</th><th>総印刷数（片側）</th><th>予備率（片側）</th>';
+  // 追加要望: 「片側面付」と「総印刷数（片側）」の間に「必要数量」を表示
+  resultHeader.innerHTML = '<th>デザイン名</th><th>側</th><th>片側面付</th><th>必要数量</th><th>総印刷数（片側）</th><th>予備率（片側）</th>';
   for (let i=0;i<req.length;i++) {
     const d = opt.detail[i];
     const tr = document.createElement('tr');
