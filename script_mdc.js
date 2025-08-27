@@ -355,7 +355,7 @@ function runCalc() {
   }
 
   if (totalFaces % 2 !== 0) { alert('半裁最適化は面付数が偶数の時のみ利用できます。'); return; }
-  const opt = optimizeMagnetSplit(req, totalFaces);必要数量
+  const opt = optimizeMagnetSplit(req, totalFaces);
   if (opt.error) { alert(opt.error); return; }
 
   // 追加要望: 「片側面付」と「総印刷数（片側）」の間に「必要数量」を表示
@@ -425,7 +425,7 @@ dropzone.addEventListener('drop', (e) => {
   if (file) handleCsvFile(file);
 });
 document.getElementById('sampleCsv').addEventListener('click', () => {
-  const sample = 'name,qty\\n' + Array.from({length:30},(_,i)=>`デザイン${i+1},${(i+1)*100}`).join('\\n');
+  const sample = 'name,qty\n' + Array.from({length:30},(_,i)=>`デザイン${i+1},${(i+1)*100}`).join('\n');
   const w = window.open('', '_blank'); w.document.write(`<pre>${sample.replace(/</g,'&lt;')}</pre>`);
 });
 applyCountBtn.addEventListener('click', buildDesignInputs);
