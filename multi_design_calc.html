@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>複複数デザイン面付計算ツール</title>
+  <title>複数デザイン面付計算ツール</title>
   <link rel="stylesheet" href="style_mdc.css">
 </head>
 <body>
@@ -22,11 +22,8 @@
 
   <div class="layout">
     <section class="panel">
-      <header>入力（<span id="designCountBadge" class="badge">0</span> デザイン）</header>
-      <div class="row-compact">
-        <button class="btn" id="sampleCsv">サンプルCSV</button>
-      </div>
-      <div class="dropzone" id="dropzone">ここにCSVをドラッグ＆ドロップ<br><span class="muted">列：デザイン名,数量</span></div>
+      <header style="display:none;"><span id="designCountBadge" class="badge" style="display:none;">0</span></header>
+            <div class="dropzone" id="dropzone">ここにCSVをドラッグ＆ドロップ<br><span class="muted">列：デザイン名,数量</span></div>
       <div id="designWrap" style="margin-top:8px;">
         <div id="designGrid" class="grid"></div>
       </div>
@@ -41,8 +38,7 @@
             <th>デザイン名</th>
             <th>面付数</th>
             <th>総印刷数</th>
-            <th>予備数</th>
-            <th>予備率</th>
+            <th>予備枚数</th>
           </tr>
         </thead>
         <tbody></tbody>
