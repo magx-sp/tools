@@ -11,7 +11,7 @@
 <body>
  <div id="newsBar" class="news-bar" role="status" aria-live="polite">
   <!-- JSで中身を自動生成します。JSが無効な場合のフォールバック -->
-  <span>2025/8/8<br>・計算ロジックを変更しました。（予備率分散が最小になることを優先→原反枚数を最小にすることを優先）<br>・6mm未満のドブを許可するかどうかのチェックボックスを追加しました。（4mm/5mmを許可）</span>
+  <span>2025/9/3<br>・最低予備枚数の入力項目を追加し、これを考慮した面付計算方法に修正しました。</span>
   <button type="button" class="news-close" aria-label="このお知らせを閉じる"
         onclick="this.parentElement.style.display='none'">×</button>
 </div>
@@ -53,6 +53,10 @@
       <label>印刷数量
         <input type="number" id="quantity" value="0" min="0">
       </label>
+      <label>最低予備枚数
+        <input type="number" id="minSpare" value="0" min="0">
+      </label>
+
       <label>原紙枚数
         <input type="number" id="sheetsInput" value="0" min="0" disabled>
       </label>

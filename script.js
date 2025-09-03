@@ -22,6 +22,7 @@ const resultBody = document.getElementById('resultBody');
 const downloadSvgBtn = document.getElementById('downloadSvgBtn');
 const downloadPdfBtn = document.getElementById('downloadPdfBtn');
 const allowSmallBleed = document.getElementById('allowSmallBleed');
+const minSpareInput = document.getElementById('minSpare'); // NEW
 
 // ニュースバーの閉じる（イベント委任で確実に反応）
 document.addEventListener('click', (e) => {
@@ -49,7 +50,7 @@ function displayErrorMessage(message) {
     render();
 }
 
-function findOptimalLayout(reqQuantities, totalFacesPerSheet) {
+function findOptimalLayout(reqQuantities, totalFacesPerSheet, minSpare = 0) {
   // すべて0なら即返す
   if (!reqQuantities || reqQuantities.length === 0 || reqQuantities.every(q => q === 0)) {
     return {
@@ -67,15 +68,18 @@ function findOptimalLayout(reqQuantities, totalFacesPerSheet) {
   const activeCount = active.filter(Boolean).length;
 
   if (totalFacesPerSheet <= 0) return null;
-  if (activeCount > totalFacesPerSheet) return null; // 1面ずつすら置けない
+  if (activeCount > totalFacesPerSheet) return null;
 
-  // 二分探索で原紙枚数 p を最小化
-  const maxQ = Math.max(...reqQuantities);
+  // ▼ 最低予備枚数を所要数に足し込む
+  const targetQ = reqQuantities.map(q => (q > 0 ? q + minSpare : 0));
+
+  // plates(原紙枚数) の二分探索
+  const maxQ = Math.max(...targetQ);
   let lo = 1, hi = Math.max(1, maxQ), bestP = null, bestLayout = null;
 
   const feasible = (p) => {
-    // 各デザインに必要な面数 f_i = ceil(q_i / p)
-    const faces = reqQuantities.map(q => (q > 0 ? Math.ceil(q / p) : 0));
+    // 各デザインの必要面数：ceil( (q_i + s) / p )
+    const faces = targetQ.map(q => (q > 0 ? Math.ceil(q / p) : 0));
     const sumFaces = faces.reduce((a, b) => a + b, 0);
     return { ok: sumFaces <= totalFacesPerSheet, faces };
   };
@@ -86,31 +90,25 @@ function findOptimalLayout(reqQuantities, totalFacesPerSheet) {
     if (ok) {
       bestP = mid;
       bestLayout = faces;
-      hi = mid - 1;          // さらに小さい枚数を探す
+      hi = mid - 1;
     } else {
-      lo = mid + 1;          // もっと枚数が必要
+      lo = mid + 1;
     }
   }
 
   if (bestP == null) return null;
 
-  // 余ったセルは未使用（-1 埋めで点線表示）にしてムダ刷りを増やさない
   const plates = bestP;
   const actualQuantities = bestLayout.map(f => f * plates);
+
+  // 表示用：元の要求に対する予備
   const overQuantities = actualQuantities.map((act, i) => act - reqQuantities[i]);
   const overRates = overQuantities.map((ov, i) => reqQuantities[i] > 0 ? (ov / reqQuantities[i]) * 100 : 0);
   const validOver = overRates.filter((_, i) => reqQuantities[i] > 0);
   const mean = validOver.length ? validOver.reduce((a, b) => a + b, 0) / validOver.length : 0;
   const variance = validOver.length ? validOver.reduce((s, r) => s + Math.pow(r - mean, 2), 0) / validOver.length : 0;
 
-  return {
-    layout: bestLayout,
-    plates,
-    actualQuantities,
-    overQuantities,
-    overRates,
-    variance
-  };
+  return { layout: bestLayout, plates, actualQuantities, overQuantities, overRates, variance };
 }
 
 function setupDesignInputs() {
@@ -336,8 +334,9 @@ function calculate() {
         }
         // ▲▲▲ 修正ここまで ▲▲▲
 
+        const s = +minSpareInput.value || 0;
         const sheetsPerDesign = req.map((qty, i) => 
-            (manualLayoutCounts[i] > 0) ? Math.ceil(qty / manualLayoutCounts[i]) : 0
+            (manualLayoutCounts[i] > 0) ? Math.ceil((qty + s) / manualLayoutCounts[i]) : 0
         );
         const sheets = Math.max(0, ...sheetsPerDesign.filter(s => isFinite(s)));
 
@@ -369,7 +368,8 @@ function calculate() {
             return;
         }
 
-        const best = findOptimalLayout(req, L.total);
+        const s = +minSpareInput.value || 0;
+        const best = findOptimalLayout(req, L.total, s);
         result = best;
 
         if (best) {
@@ -441,7 +441,8 @@ function calculate() {
     if (sheetsInput.value !== '' && !isNaN(parseInt(sheetsInput.value, 10)) && parseInt(sheetsInput.value, 10) >= 0) {
       sheets = parseInt(sheetsInput.value, 10);
     } else {
-      sheets = L.total > 0 ? Math.ceil(qty / L.total) : 0;
+      const s = +minSpareInput.value || 0;
+      sheets = L.total > 0 ? Math.ceil((qty + s) / L.total) : 0;
       sheetsInput.value = sheets;
     }
 
@@ -460,6 +461,7 @@ function calculate() {
     tableRows += `<tr><td>ドブ・余白</td><td>ドブ：${L.bl}・${L.bs}（長辺・短辺）<br>クワエ：${L.mb}／ハリ：${L.hr}（mm）</td></tr>`;
   }
   
+  tableRows += `<tr><td>最低予備枚数（設定）</td><td>${(+minSpareInput.value || 0).toLocaleString()}枚</td></tr>`;
   resultBody.innerHTML = tableRows;
   render();
 }
@@ -596,4 +598,15 @@ function setNews(items) {
 
 window.addEventListener('DOMContentLoaded', () => {
   setupDesignInputs();
+  if (minSpareInput) {
+    const minSpareHandler = () => {
+      // 他の入力と同様に依存をクリアしてから再計算
+      if (typeof sheetsInput !== 'undefined' && sheetsInput) sheetsInput.value = '';
+      if (typeof overrideX !== 'undefined' && overrideX) overrideX.value = '';
+      if (typeof overrideY !== 'undefined' && overrideY) overrideY.value = '';
+      calculate();
+    };
+    minSpareInput.addEventListener('input', minSpareHandler);
+    minSpareInput.addEventListener('change', minSpareHandler);
+  }
 });
