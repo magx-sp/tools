@@ -482,8 +482,16 @@ function buildRowsForExport(){
   // header
   const headers = Array.from(resultTable.querySelectorAll('thead th')).map(th => th.textContent.trim());
   rows.push(headers);
-  // body
-  rows.push(...Array.from(tbody.querySelectorAll('tr')).map(tr => Array.from(tr.children).map(td => td.textContent.trim())));
+  
+  // body (ここを修正: inputタグの値を見るように変更)
+  rows.push(...Array.from(tbody.querySelectorAll('tr')).map(tr => 
+    Array.from(tr.children).map(td => {
+      const input = td.querySelector('input');
+      // input要素があればその数値を、なければテキストを返す
+      return input ? input.value : td.textContent.trim();
+    })
+  ));
+
   // summary
   const save = resultTable._save || {};
   if (mode === 'single') {
