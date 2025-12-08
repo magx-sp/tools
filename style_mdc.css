@@ -28,3 +28,4 @@ th:nth-child(1), td:nth-child(1) { text-align: left; }
 tfoot td { font-weight: bold; }
 .badge { display:inline-block; padding:1px 6px; border-radius:999px; background:#eef; border:1px solid #99c; font-size:12px;}
 .right { text-align:right; }
+tr.error td{ background: #fff0f0; }

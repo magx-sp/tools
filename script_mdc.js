@@ -293,9 +293,93 @@ const summaryCell = document.getElementById('summaryCell');
 const pickCsvBtn = document.getElementById('pickCsv');
 const csvFileEl = document.getElementById('csvFile');
 const dropzone = document.getElementById('dropzone');
-const sampleBtn = document.getElementById('sampleCsv');
 const magnetModeEl = document.getElementById('magnetMode');
 const exportXlsxBtn = document.getElementById('exportXlsx');
+// ===== Editable faces recompute =====
+function recomputeSingleFromInputs(state){
+  const totalFaces = state.totalFaces;
+  const req = state.req, names = state.names;
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  const faces = rows.map(tr => Math.max(0, parseInt(tr.querySelector('input.faces-edit').value || '0', 10)));
+  const sumFaces = faces.reduce((a,b)=>a+b,0);
+  // constraint
+  rows.forEach(tr=>tr.classList.remove('error'));
+  if (sumFaces > totalFaces) {
+    summaryCell.textContent = `面付数の合計（${sumFaces}）が設定（${totalFaces}）を超えています。調整してください。`;
+    summaryCell.style.color = '#c00';
+  } else {
+    summaryCell.style.color = '';
+  }
+  // plates
+  let plates = 0;
+  for (let i=0;i<req.length;i++){
+    if (req[i] > 0 && faces[i] > 0) {
+      plates = Math.max(plates, Math.ceil(req[i] / faces[i]));
+    } else if (req[i] > 0 && faces[i] === 0) {
+      plates = Math.max(plates, Infinity);
+    }
+  }
+  if (!isFinite(plates)) {
+    summaryCell.textContent = '面付数0のデザインがあります（数量>0）。1以上にしてください。';
+    summaryCell.style.color = '#c00';
+    return;
+  }
+  // update rows
+  for (let i=0;i<req.length;i++){
+    const tr = rows[i];
+    const f = faces[i];
+    const actual = f * plates;
+    const spare = Math.max(0, actual - req[i]);
+    tr.querySelector('[data-col="actual"]').textContent = actual.toLocaleString();
+    tr.querySelector('[data-col="spare"]').textContent = spare.toLocaleString();
+  }
+  summaryCell.textContent = `必要原紙枚数（刷了）: ${plates.toLocaleString()} 枚`;
+  resultTable._save = { names, req }; // for export
+}
+
+function recomputeMagnetFromInputs(state){
+  const H = state.H;
+  const req = state.req, names = state.names, sides = state.sides; // 'A' or 'B'
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  const faces = rows.map(tr => Math.max(0, parseInt(tr.querySelector('input.faces-edit').value || '0', 10)));
+  let sumA = 0, sumB = 0;
+  for (let i=0;i<faces.length;i++){
+    if (sides[i] === 'A') sumA += faces[i];
+    else if (sides[i] === 'B') sumB += faces[i];
+  }
+  let warn = [];
+  if (sumA > H) warn.push(`A側の面付合計（${sumA}）>${H}`);
+  if (sumB > H) warn.push(`B側の面付合計（${sumB}）>${H}`);
+  summaryCell.style.color = warn.length ? '#c00' : '';
+  // plates per side
+  let platesA = 0, platesB = 0;
+  for (let i=0;i<req.length;i++){
+    const f = faces[i], q = req[i];
+    if (q <= 0 || f <= 0) continue;
+    const need = Math.ceil(q / f);
+    if (sides[i] === 'A') platesA = Math.max(platesA, need);
+    else platesB = Math.max(platesB, need);
+  }
+  const sheets = Math.max(platesA, platesB);
+  // update rows
+  for (let i=0;i<req.length;i++){
+    const tr = rows[i];
+    const f = faces[i];
+    const actual = f * (sides[i] === 'A' ? platesA : platesB);
+    const spare = Math.max(0, actual - req[i]);
+    tr.querySelector('[data-col="actual"]').textContent = isFinite(actual) ? actual.toLocaleString() : '—';
+    tr.querySelector('[data-col="spare"]').textContent = isFinite(spare) ? spare.toLocaleString() : '—';
+  }
+  const metaMsg = [
+    `片側面付数: ${H}`,
+    `刷了（原紙）: ${isFinite(sheets)?sheets.toLocaleString():'—'} 枚`,
+    `使用マグネット: ${(isFinite(platesA)?platesA:0)+(isFinite(platesB)?platesB:0)} 枚（A: ${isFinite(platesA)?platesA:0} / B: ${isFinite(platesB)?platesB:0}）`
+  ].join('　|　');
+  summaryCell.innerHTML = warn.length ? (warn.join(' / ') + '　|　' + metaMsg) : metaMsg;
+  // save for export
+  resultTable._save = { names, req, opt: { H, sheets, platesA, platesB, magnets: (isFinite(platesA)?platesA:0)+(isFinite(platesB)?platesB:0) } };
+}
+
 
 function buildDesignInputs() {
   const n = Math.max(1, parseInt(designCountEl.value || '1', 10));
@@ -331,7 +415,7 @@ function runCalc() {
   if (!magnetModeEl.checked) {
     const res = findOptimalLayout(req, totalFaces);
     if (!res) { alert('計算に失敗しました。'); return; }
-    resultHeader.innerHTML = '<th>デザイン名</th><th>面付数</th><th>総印刷数</th><th>予備数</th><th>予備率</th>';
+    resultHeader.innerHTML = '<th>デザイン名</th><th>面付数（編集可）</th><th>総印刷数</th><th>予備枚数</th>';
     for (let i = 0; i < req.length; i++) {
       const tr = document.createElement('tr');
       const faces = res.layout[i] || 0;
@@ -340,10 +424,9 @@ function runCalc() {
       const rate  = res.overRates[i] || 0;
       tr.innerHTML =
         `<td style="text-align:left;">${names[i]||`デザイン${i+1}`}</td>` +
-        `<td>${faces.toLocaleString()}</td>` +
-        `<td>${actual.toLocaleString()}</td>` +
-        `<td>${spare.toLocaleString()}</td>` +
-        `<td>${rate.toFixed(2)}%</td>`;
+        `<td><input type="number" class="faces-edit" min="0" step="1" value="${faces}"></td>` +
+        `<td data-col="actual">${actual.toLocaleString()}</td>` +
+        `<td data-col="spare">${spare.toLocaleString()}</td>`;
       tbody.appendChild(tr);
     }
     summaryCell.textContent = `必要原紙枚数（刷了）: ${res.plates.toLocaleString()} 枚`;
@@ -351,6 +434,9 @@ function runCalc() {
     resultTable.dataset.mode = 'single';
     // 保存
     resultTable._save = { names, req };
+    // 編集イベント
+    resultTable._state = { mode:'single', totalFaces: totalFaces, req, names };
+    tbody.querySelectorAll('input.faces-edit').forEach(inp=> inp.addEventListener('input', ()=> recomputeSingleFromInputs(resultTable._state)));
     return;
   }
 
@@ -359,17 +445,17 @@ function runCalc() {
   if (opt.error) { alert(opt.error); return; }
 
   // 追加要望: 「片側面付」と「総印刷数（片側）」の間に「必要数量」を表示
-  resultHeader.innerHTML = '<th>デザイン名</th><th>側</th><th>片側面付</th><th>必要数量</th><th>総印刷数（片側）</th><th>予備率（片側）</th>';
+  resultHeader.innerHTML = '<th>デザイン名</th><th>側</th><th>片側面付（編集可）</th><th>必要数量</th><th>総印刷数（片側）</th><th>予備枚数（片側）</th>';
   for (let i=0;i<req.length;i++) {
     const d = opt.detail[i];
     const tr = document.createElement('tr');
     tr.innerHTML =
       `<td style="text-align:left;">${names[i]||`デザイン${i+1}`}</td>` +
       `<td style="text-align:center;">${d.side}</td>` +
-      `<td>${(d.faces||0).toLocaleString()}</td>` +
-      `<td>${(req[i]||0).toLocaleString()}</td>` +  // new column
-      `<td>${(d.actual||0).toLocaleString()}</td>` +
-      `<td>${(d.rate||0).toFixed(2)}%</td>`;
+      `<td><input type="number" class="faces-edit" min="0" step="1" value="${(d.faces||0)}"></td>` +
+      `<td>${(req[i]||0).toLocaleString()}</td>` +
+      `<td data-col="actual">${(d.actual||0).toLocaleString()}</td>` +
+      `<td data-col="spare">${(d.spare||0).toLocaleString()}</td>`;
     tbody.appendChild(tr);
   }
   const msg = [
@@ -383,6 +469,9 @@ function runCalc() {
   resultTable.dataset.mode = 'magnet';
   // 保存用
   resultTable._save = { opt, names, req };
+  // 編集イベント
+  resultTable._state = { mode:'magnet', H: opt.H, req, names, sides: opt.group };
+  tbody.querySelectorAll('input.faces-edit').forEach(inp=> inp.addEventListener('input', ()=> recomputeMagnetFromInputs(resultTable._state)));
 }
 
 // Build rows array from current table for export
@@ -423,10 +512,6 @@ csvFileEl.addEventListener('change', (e) => handleCsvFile(e.target.files[0]));
 dropzone.addEventListener('drop', (e) => {
   const file = e.dataTransfer.files && e.dataTransfer.files[0];
   if (file) handleCsvFile(file);
-});
-document.getElementById('sampleCsv').addEventListener('click', () => {
-  const sample = 'name,qty\n' + Array.from({length:30},(_,i)=>`デザイン${i+1},${(i+1)*100}`).join('\n');
-  const w = window.open('', '_blank'); w.document.write(`<pre>${sample.replace(/</g,'&lt;')}</pre>`);
 });
 applyCountBtn.addEventListener('click', buildDesignInputs);
 document.getElementById('magnetMode').addEventListener('change', runCalc);
