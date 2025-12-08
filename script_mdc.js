@@ -483,20 +483,12 @@ function buildRowsForExport(){
   const headers = Array.from(resultTable.querySelectorAll('thead th')).map(th => th.textContent.trim());
   rows.push(headers);
   
-  // body
+  // body (ここを修正: inputタグの値を見るように変更)
   rows.push(...Array.from(tbody.querySelectorAll('tr')).map(tr => 
-    Array.from(tr.children).map((td, colIndex) => {
+    Array.from(tr.children).map(td => {
       const input = td.querySelector('input');
-      let value = input ? input.value : td.textContent.trim();
-      
-      // *** 追加修正箇所: 数値となるべき列からカンマを除去する ***
-      // デザイン名（0列目）と側（1列目、半裁時のみ）以外は数値とみなし、カンマを除去する
-      const isTextColumn = (mode === 'single' && colIndex === 0) || (mode === 'magnet' && (colIndex === 0 || colIndex === 1));
-      if (!isTextColumn) {
-        value = value.replace(/,/g, '');
-      }
-      
-      return value;
+      // input要素があればその数値を、なければテキストを返す
+      return input ? input.value : td.textContent.trim();
     })
   ));
 
@@ -504,20 +496,17 @@ function buildRowsForExport(){
   const save = resultTable._save || {};
   if (mode === 'single') {
     rows.push([]);
-    // summaryCell.textContentからもカンマを除去
-    const plates = summaryCell.textContent.match(/[\d,]+/g) ? summaryCell.textContent.match(/[\d,]+/g)[0].replace(/,/g,'') : '—';
-    rows.push(['Summary','必要原紙枚数（刷了）', plates]);
+    rows.push(['Summary','必要原紙枚数（刷了）', summaryCell.textContent.replace(/[^\d]/g,'')]);
   } else {
-    const meta = resultTable._state; // StateからHとsidesを取得
-    const opt = save.opt; // Saveからplates, sheets, magnetsを取得
-    if (opt && meta) {
+    const meta = save.opt;
+    if (meta) {
       rows.push([]);
-      rows.push(['Summary','片側面付数', opt.H]);
-      rows.push(['Summary','刷了（原紙）', opt.sheets]);
-      rows.push(['Summary','使用マグネット（合計）', opt.magnets]);
-      rows.push(['Summary','A側半裁', opt.platesA]);
-      rows.push(['Summary','B側半裁', opt.platesB]);
-      rows.push(['Summary','マグネット未使用で廃棄する半裁', (opt.sheets - opt.platesA) + (opt.sheets - opt.platesB)]);
+      rows.push(['Summary','片側面付数', meta.H]);
+      rows.push(['Summary','刷了（原紙）', meta.sheets]);
+      rows.push(['Summary','使用マグネット（合計）', meta.magnets]);
+      rows.push(['Summary','A側半裁', meta.platesA]);
+      rows.push(['Summary','B側半裁', meta.platesB]);
+      rows.push(['Summary','マグネット未使用で廃棄する半裁', (meta.sheets - meta.platesA) + (meta.sheets - meta.platesB)]);
     }
   }
   return rows;
