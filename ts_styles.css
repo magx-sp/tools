@@ -1,0 +1,177 @@
+:root {
+            --b-gray: #f0f0f0;
+            --m-gray: #888;
+            --d-gray: #333;
+            /* プレビュー用の色 (CMYKに基づいた色) */
+            --preview-finish-color: #d71920; /* M100: 赤系 */
+            --preview-bleed-color: #79c900; /* C100Y100: 緑系 */
+            --preview-safe-color: #00aeef; /* C100: 青系 */
+            --preview-tombo-color: #000000;
+            --header-height: 55px; 
+            --padding-vertical: 20px;
+            --button-area-height: 60px;
+            --legend-height: 35px;
+        }
+        html, body {
+            height: 100%; 
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans CJK JP", "Yu Gothic", sans-serif;
+            background-color: var(--b-gray);
+            color: var(--d-gray);
+            overflow: hidden; 
+        }
+        .header {
+            background-color: var(--d-gray);
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            height: var(--header-height);
+            box-sizing: border-box; 
+        }
+        .container {
+            display: flex;
+            padding: var(--padding-vertical) 20px;
+            gap: 20px;
+            height: calc(100% - var(--header-height) - (var(--padding-vertical) * 2)); 
+        }
+        .left-panel {
+            flex: 0 0 300px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow-y: auto; 
+        }
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 100%;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .input-row input {
+            width: 100px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+            text-align: right;
+        }
+        .input-note {
+            font-size: 0.75em;
+            color: var(--m-gray);
+            margin-top: 5px;
+        }
+        .notes {
+            font-size: 0.8em;
+            color: var(--d-gray);
+            line-height: 1.6;
+        }
+        .notes ul, .notes ol {
+            padding-left: 1.5em;
+            margin: 10px 0;
+        }
+        .notes li {
+             margin-bottom: 5px;
+        }
+        /* 線の定義の色付けをCSSに移動 */
+        .notes .preview-line {
+            font-weight: bold;
+        }
+        .notes .red { color: var(--preview-finish-color); }
+        .notes .green { color: var(--preview-bleed-color); }
+        .notes .blue { color: var(--preview-safe-color); }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9em;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-shrink: 0; 
+            height: var(--legend-height);
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .legend-item .line {
+            width: 20px;
+            height: 2px;
+        }
+        .legend-item .red { background-color: var(--preview-finish-color); }
+        .legend-item .green { border-top: 2px dashed var(--preview-bleed-color); }
+        .legend-item .blue { border-top: 2px dashed var(--preview-safe-color); }
+
+        #preview-area {
+            flex-grow: 1;
+            max-height: calc(100% - (var(--legend-height) + var(--button-area-height))); 
+            border: 1px solid var(--b-gray);
+            width: 100%;
+            overflow: hidden;
+            background-color: #fdfdfd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100px; 
+        }
+        #preview-area svg {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+        }
+        .download-buttons {
+            display: flex;
+            margin-top: 20px;
+            justify-content: flex-end;
+            flex-shrink: 0; 
+            padding-bottom: 5px; 
+        }
+        .btn {
+            padding: 12px 25px;
+            font-size: 1em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: var(--m-gray);
+            color: white;
+            transition: background-color 0.2s;
+        }
+        .btn:hover {
+            background-color: var(--d-gray);
+        }
+        
+        /* design_notes.html 用のスタイル調整 */
+        .notes-page .container {
+            display: block;
+            height: auto;
+        }
+        .notes-page .content-panel {
+            width: 800px;
+            max-width: 100%;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow-y: auto; 
+        }

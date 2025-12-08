@@ -1,0 +1,81 @@
+:root {
+    /* ts_styles.css から持ってきた変数 */
+    --b-gray: #f0f0f0;
+    --m-gray: #888;
+    --d-gray: #333;
+    --header-height: 55px; 
+    --radius: 8px; /* .content-panel の角丸用 */
+
+    /* ts_styles.css のフォント定義 */
+    --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans CJK JP", "Yu Gothic", sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body { 
+    font-family: var(--font-stack);
+    line-height: 1.6;
+    background-color: var(--b-gray); /* ts_styles.css の背景色 */
+    color: var(--d-gray); /* ts_styles.css の基本文字色 */
+    /* ヘッダーは固定しないので padding-top は不要 */
+}
+
+/* ヘッダー: ts_styles.css の .header に合わせる (固定は解除) */
+.header {
+    /* position: fixed; を解除 */
+    height: var(--header-height);
+    padding: 15px 30px; /* ts_styles.css の padding */
+    background-color: var(--d-gray);
+    color: #fff;
+    font-size: 1.2rem;
+    /* font-weight: 700; の行を削除 */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* note.css のスタイルを維持 */
+    box-sizing: border-box; /* ts_styles.css から */
+}
+
+.container {
+    padding: 20px 10px;
+    max-width: 800px; /* コンテンツ幅の制限 */
+    margin: 0 auto;
+}
+
+.content-panel {
+    background-color: white;
+    padding: 20px 40px; /* ts_styles.css の .notes-page .content-panel に合わせる */
+    border: none; /* ts_styles.css には border がない */
+    border-radius: var(--radius); /* ts_styles.css に合わせる */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* ts_styles.css に合わせる */
+}
+
+.content-panel h2 {
+    color: var(--d-gray);
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+}
+
+/* 閉じるボタン: ts_styles.css の .btn スタイルに合わせる */
+.btn {
+    display: inline-block;
+    font-size: 1em; /* ts_styles.css から */
+    border: none; /* ts_styles.css から */
+    border-radius: 5px; /* ts_styles.css から */
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.2s;
+
+    /* HTML側のインラインスタイル (padding, background-color) を
+      !important で上書きして ts_styles.css の .btn に強制的に合わせる 
+    */
+    padding: 12px 25px !important; 
+    background-color: var(--m-gray) !important; 
+    color: white !important;
+}
+
+.btn:hover {
+    /* ホバー色を確実に適用 */
+    background-color: var(--d-gray) !important; 
+}
+
+/* .close-btn セレクタは不要 */
+.close-btn { }

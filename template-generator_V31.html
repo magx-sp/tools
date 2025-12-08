@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>テンプレート作成ツール</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="ts_styles.css">
+</head>
+<body>
+    <header class="header">テンプレート作成ツール</header>
+    <div class="container">
+        <aside class="left-panel">
+            <div class="input-group">
+                <label for="width-input">製品サイズ (幅 × 高さ : mm)</label>
+                <div class="input-row">
+                    <input type="number" id="width-input" value="90" min="10">
+                    <span>×</span>
+                    <input type="number" id="height-input" value="60" min="10">
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="radius-input">角丸 : mm (R)</label>
+                <div class="input-row">
+                    <input type="number" id="radius-input" value="3" min="0">
+                </div>
+                <div class="input-note">
+                    ※インクジェット印刷、オンデマンド印刷で角丸をつける場合は「3R以上」にしてください。
+                </div>
+            </div>
+            <div class="notes">
+                <p><strong>線の定義</strong></p>
+                <ul>
+                    <li><span class="preview-line red"><strong>──</strong></span> 仕上がり線 (M100)</li>
+                    <li><span class="preview-line green"><strong>‑ ‑ ‑</strong></span> 塗り足し線（外側3mm, C100Y100）</li>
+                    <li><span class="preview-line blue"><strong>‑ ‑ ‑</strong></span> 印刷安全範囲（内側2mm, C100）</li>
+                </ul>
+                <p style="font-weight:bold;">テンプレート利用時の注意点</p>
+                <p>ダウンロードしたPDFは、AdobeのIllustrator等で開いて編集してください。その際、以下の点に注意してください。</p>
+                <ol style="padding-left: 1.5em; margin: 10px 0;">
+                    <li style="margin-bottom: 5px;">【レイヤーの分離】デザイン用レイヤーと仕上がり線レイヤーを新しく作成して作業してください。テンプレートはグループ化・ロックをして作業することを推奨します。</li>
+                    <li style="margin-bottom: 5px;">【ガイド線の削除】塗り足し線、印刷安全範囲線は目安のために配置しているものです。デザインと混同しないように入稿時は削除してください。<br></li>
+                </ol>
+                
+                <p style="margin-top: 20px;">
+                    <a href="design_notes.html" target="_blank" style="font-weight:bold;">デザイン上の注意点はこちらをご確認ください ↗</a>
+                </p>
+                </div>
+        </aside>
+        <main class="right-panel">
+            <div class="legend">
+                <span>プレビュー</span>
+                <div class="legend-item"><div class="line red"></div>仕上がり線</div>
+                <div class="legend-item"><div class="line green dashed"></div>塗り足し線</div>
+                <div class="legend-item"><div class="line blue dashed"></div>印刷安全範囲</div>
+            </div>
+            <div id="preview-area"></div>
+            <div class="download-buttons">
+                <button id="pdf-download-btn" class="btn">PDF ダウンロード</button>
+            </div>
+        </main>
+    </div>
+
+<script src="ts_script.js"></script>
+</body>
+</html>
