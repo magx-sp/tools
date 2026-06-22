@@ -7,11 +7,12 @@
   <link rel="stylesheet" href="style_mdc.css">
 </head>
 <body>
-  <h1>複数デザイン面付計算ツール（半裁対応）<span class="muted">v4</span></h1>
+  <h1>複数デザイン面付計算ツール（半裁対応）<span class="muted">v5</span></h1>
 
   <div class="toolbar">
-    <label>面付数<input type="number" id="facesPerSheet" min="1" step="1" value="100"></label>
-    <label>デザイン数<input type="number" id="designCount" min="1" step="1" value="3"></label>
+    <label>面付数<input type="number" id="facesPerSheet" min="1" step="1" value="15"></label>
+    <label>版数<input type="number" id="plateCount" min="1" step="1" value="3"></label>
+    <label>デザイン数<input type="number" id="designCount" min="1" step="1" value="40"></label>
     <button class="btn" id="applyCount">反映</button>
     <label><input type="checkbox" id="magnetMode" checked> 半裁あり</label>
     <span class="spacer"></span>
@@ -23,7 +24,7 @@
   <div class="layout">
     <section class="panel">
       <header style="display:none;"><span id="designCountBadge" class="badge" style="display:none;">0</span></header>
-            <div class="dropzone" id="dropzone">ここにCSVをドラッグ＆ドロップ<br><span class="muted">列：デザイン名,数量</span></div>
+      <div class="dropzone" id="dropzone">ここにCSVをドラッグ＆ドロップ<br><span class="muted">列：デザイン名,数量</span></div>
       <div id="designWrap" style="margin-top:8px;">
         <div id="designGrid" class="grid"></div>
       </div>
@@ -34,16 +35,11 @@
       <header>結果</header>
       <table id="resultTable" style="display:none;">
         <thead>
-          <tr id="resultHeader">
-            <th>デザイン名</th>
-            <th>面付数</th>
-            <th>総印刷数</th>
-            <th>予備枚数</th>
-          </tr>
+          <tr id="resultHeader"></tr>
         </thead>
         <tbody></tbody>
         <tfoot>
-          <tr><td id="summaryCell" colspan="6" class="right"></td></tr>
+          <tr><td id="summaryCell" colspan="7" class="right"></td></tr>
         </tfoot>
       </table>
     </section>
